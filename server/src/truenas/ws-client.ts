@@ -3,13 +3,21 @@ type Pending = {
   reject: (e: Error) => void;
 };
 
+function explicitPortFromInput(input: string): string | null {
+  const schemeEnd = input.indexOf("://");
+  if (schemeEnd === -1) return null;
+  const authority = input.slice(schemeEnd + 3).split(/[/?#]/)[0];
+  const match = authority.match(/:(\d+)$/);
+  return match ? match[1] : null;
+}
+
 export function hostToWsUrl(host: string): string {
-  const u = new URL(host.includes("://") ? host : `https://${host}`);
-  u.protocol = u.protocol === "http:" ? "ws:" : "wss:";
-  u.pathname = "/api/current";
-  u.search = "";
-  u.hash = "";
-  return u.toString();
+  const input = host.includes("://") ? host : `https://${host}`;
+  const u = new URL(input);
+  const protocol = u.protocol === "http:" ? "ws:" : "wss:";
+  const port = u.port || explicitPortFromInput(input);
+  const hostPart = port ? `${u.hostname}:${port}` : u.hostname;
+  return `${protocol}//${hostPart}/api/current`;
 }
 
 export class TrueNasClient {

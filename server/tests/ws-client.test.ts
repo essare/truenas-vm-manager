@@ -4,7 +4,7 @@ import { hostToWsUrl, TrueNasClient } from "../src/truenas/ws-client";
 describe("hostToWsUrl", () => {
   test("https → wss /api/current", () => {
     expect(hostToWsUrl("https://nas.example:443")).toBe(
-      "wss://nas.example/api/current",
+      "wss://nas.example:443/api/current",
     );
     expect(hostToWsUrl("https://nas.example:8443")).toBe(
       "wss://nas.example:8443/api/current",
