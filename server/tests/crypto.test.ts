@@ -43,4 +43,8 @@ describe("truenas crypto + store", () => {
     await deleteTrueNasConfig(dataDir);
     expect(await hasTrueNasConfig(dataDir)).toBe(false);
   });
+
+  test("delete ignores missing file only", async () => {
+    await expect(deleteTrueNasConfig(dataDir)).resolves.toBeUndefined();
+  });
 });

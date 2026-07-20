@@ -34,7 +34,7 @@ export async function loadTrueNasConfig(
 export async function deleteTrueNasConfig(dataDir: string): Promise<void> {
   try {
     await unlink(encPath(dataDir));
-  } catch {
-    // ignore missing
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
   }
 }
