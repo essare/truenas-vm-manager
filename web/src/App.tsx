@@ -10,6 +10,7 @@ import { RouteGuards } from "@/components/route-guards";
 import { Toaster } from "@/components/ui/sonner";
 import { DashboardPage } from "@/pages/dashboard";
 import { OnboardingPage } from "@/pages/onboarding";
+import { SettingsPage } from "@/pages/settings";
 import { SetupPage } from "@/pages/setup";
 import { UnlockPage } from "@/pages/unlock";
 
@@ -25,6 +26,7 @@ function App() {
             <Route element={<SetupPage />} path="/setup" />
             <Route element={<UnlockPage />} path="/unlock" />
             <Route element={<OnboardingPage />} path="/onboarding" />
+            <Route element={<SettingsPage />} path="/settings" />
             <Route element={<Navigate replace to="/" />} path="*" />
           </Route>
         </Routes>

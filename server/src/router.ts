@@ -15,6 +15,32 @@ const PUBLIC_ROUTES = new Set([
   "POST /api/setup",
   "POST /api/unlock",
 ]);
+const WEB_DIST = new URL("../../web/dist/", import.meta.url);
+
+async function staticResponse(url: URL): Promise<Response | null> {
+  const indexFile = Bun.file(new URL("index.html", WEB_DIST));
+  if (!(await indexFile.exists())) {
+    return null;
+  }
+
+  let relativePath: string;
+  try {
+    relativePath = decodeURIComponent(url.pathname).replace(/^\/+/, "");
+  } catch {
+    return new Response("Bad Request", { status: 400 });
+  }
+
+  const hasTraversal =
+    relativePath.includes("\\") ||
+    relativePath.split("/").some((part) => part === "..");
+  const requestedFile =
+    relativePath && !hasTraversal
+      ? Bun.file(new URL(relativePath, WEB_DIST))
+      : indexFile;
+  const file = (await requestedFile.exists()) ? requestedFile : indexFile;
+
+  return new Response(file);
+}
 
 function withCors(ctx: AppContext, req: Request, res: Response): Response {
   if (ctx.env.isProd || req.headers.get("origin") !== DEV_ORIGIN) return res;
@@ -32,6 +58,11 @@ function withCors(ctx: AppContext, req: Request, res: Response): Response {
 async function routeRequest(ctx: AppContext, req: Request): Promise<Response> {
   const url = new URL(req.url);
   const key = `${req.method} ${url.pathname}`;
+
+  if (req.method === "GET" && !url.pathname.startsWith("/api")) {
+    const response = await staticResponse(url);
+    if (response) return response;
+  }
 
   if (req.method === "OPTIONS" && url.pathname.startsWith("/api/")) {
     return new Response(null, {

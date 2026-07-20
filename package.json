@@ -6,6 +6,8 @@
     "dev": "bun run --filter server dev & bun run --filter web dev",
     "dev:server": "bun run --filter server dev",
     "dev:web": "bun run --filter web dev",
+    "build": "bun run --filter web build",
+    "start": "bun run --filter server start",
     "test": "bun run --filter server test && bun run --filter web test",
     "typecheck": "bun run --filter server typecheck && bun run --filter web typecheck"
   }
