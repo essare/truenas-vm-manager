@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type { Env } from "./env";
 import {
   loadTrueNasConfig,
@@ -7,12 +8,21 @@ import { TrueNasClient } from "./truenas/ws-client";
 
 export type AppContext = {
   env: Env;
+  sessionEpoch: string;
+  unlockFailures: {
+    count: number;
+    blockedUntil: number;
+  };
   /** Test seam for replacing the network client. */
   connectTrueNas?: (cfg: TrueNasConfig) => Promise<TrueNasClient>;
 };
 
 export function createAppContext(env: Env): AppContext {
-  return { env };
+  return {
+    env,
+    sessionEpoch: randomUUID(),
+    unlockFailures: { count: 0, blockedUntil: 0 },
+  };
 }
 
 export async function connectTrueNas(

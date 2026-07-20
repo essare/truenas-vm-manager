@@ -35,6 +35,20 @@ describe("app-password", () => {
     expect(content).toContain("passwordHash");
   });
 
+  test("concurrent setup creates exactly one password", async () => {
+    const results = await Promise.allSettled([
+      createAppPassword(dataDir, "first-password"),
+      createAppPassword(dataDir, "second-password"),
+    ]);
+
+    expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+    expect(results.filter((result) => result.status === "rejected")).toHaveLength(1);
+    expect(
+      (await verifyAppPassword(dataDir, "first-password")) !==
+        (await verifyAppPassword(dataDir, "second-password")),
+    ).toBe(true);
+  });
+
   test("change password", async () => {
     await createAppPassword(dataDir, "old-pass-word");
     expect(await changeAppPassword(dataDir, "old-pass-word", "new-pass-word")).toBe(true);

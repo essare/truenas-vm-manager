@@ -3,9 +3,17 @@ import { timingSafeEqual } from "node:crypto";
 export const COOKIE_NAME = "app_session";
 const MAX_AGE_SEC = 60 * 60 * 24 * 7; // 7 days
 
-export function createSessionCookie(secret: string, isProd: boolean): string {
+export function createSessionCookie(
+  secret: string,
+  epoch: string,
+  isProd: boolean,
+): string {
   const payload = Buffer.from(
-    JSON.stringify({ unlocked: true, exp: Date.now() + MAX_AGE_SEC * 1000 }),
+    JSON.stringify({
+      unlocked: true,
+      exp: Date.now() + MAX_AGE_SEC * 1000,
+      epoch,
+    }),
     "utf8",
   ).toString("base64url");
   const sig = new Bun.CryptoHasher("sha256", secret)
@@ -26,6 +34,7 @@ export function createSessionCookie(secret: string, isProd: boolean): string {
 export function parseSession(
   cookieHeader: string | null,
   secret: string,
+  epoch: string,
 ): { unlocked: true } | null {
   if (!cookieHeader) return null;
   const match = cookieHeader
@@ -46,8 +55,15 @@ export function parseSession(
   try {
     const data = JSON.parse(
       Buffer.from(payload, "base64url").toString("utf8"),
-    ) as { unlocked?: boolean; exp?: number };
-    if (!data.unlocked || !data.exp || data.exp < Date.now()) return null;
+    ) as { unlocked?: boolean; exp?: number; epoch?: string };
+    if (
+      !data.unlocked ||
+      !data.exp ||
+      data.exp < Date.now() ||
+      data.epoch !== epoch
+    ) {
+      return null;
+    }
     return { unlocked: true };
   } catch {
     return null;

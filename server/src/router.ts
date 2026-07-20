@@ -45,7 +45,11 @@ async function routeRequest(ctx: AppContext, req: Request): Promise<Response> {
 
   if (
     !PUBLIC_ROUTES.has(key) &&
-    !parseSession(req.headers.get("cookie"), ctx.env.sessionSecret)
+    !parseSession(
+      req.headers.get("cookie"),
+      ctx.env.sessionSecret,
+      ctx.sessionEpoch,
+    )
   ) {
     return errorJson(401, "UNAUTHORIZED", "Unlock required");
   }

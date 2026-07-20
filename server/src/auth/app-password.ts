@@ -1,4 +1,4 @@
-import { mkdir } from "node:fs/promises";
+import { mkdir, open } from "node:fs/promises";
 import path from "node:path";
 
 type AppFile = { passwordHash: string };
@@ -16,12 +16,23 @@ export async function createAppPassword(
   password: string,
 ): Promise<void> {
   if (password.length < 8) throw new Error("Password too short");
-  if (await isSetupComplete(dataDir)) throw new Error("Already set up");
   await mkdir(dataDir, { recursive: true });
   const passwordHash = await Bun.password.hash(password, {
     algorithm: "argon2id",
   });
-  await Bun.write(appPath(dataDir), JSON.stringify({ passwordHash } satisfies AppFile));
+  try {
+    const file = await open(appPath(dataDir), "wx", 0o600);
+    try {
+      await file.writeFile(JSON.stringify({ passwordHash } satisfies AppFile));
+    } finally {
+      await file.close();
+    }
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === "EEXIST") {
+      throw new Error("Already set up");
+    }
+    throw err;
+  }
 }
 
 export async function verifyAppPassword(

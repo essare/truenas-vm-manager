@@ -13,7 +13,11 @@ export async function statusRoute(
 ): Promise<Response> {
   const setupComplete = await isSetupComplete(ctx.env.dataDir);
   const unlocked = Boolean(
-    parseSession(req.headers.get("cookie"), ctx.env.sessionSecret),
+    parseSession(
+      req.headers.get("cookie"),
+      ctx.env.sessionSecret,
+      ctx.sessionEpoch,
+    ),
   );
   const onboarded = await hasTrueNasConfig(ctx.env.dataDir);
   const result: {
@@ -27,7 +31,7 @@ export async function statusRoute(
     onboarded,
   };
 
-  if (onboarded) {
+  if (setupComplete && unlocked && onboarded) {
     const cfg = await loadTrueNasConfig(
       ctx.env.dataDir,
       ctx.env.sessionSecret,

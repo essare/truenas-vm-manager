@@ -129,6 +129,39 @@ describe("auth routes", () => {
       onboarded: true,
       host: "https://nas.example.test",
     });
+
+    res = await handleRequest(ctx, new Request("http://local/api/status"));
+    expect(await res.json()).toEqual({
+      setupRequired: false,
+      unlocked: false,
+      onboarded: true,
+    });
+  });
+
+  test("sessions are invalid after the process context restarts", async () => {
+    const cookie = await setupAndUnlock(ctx);
+    const restartedCtx = createAppContext(ctx.env);
+    const res = await post(restartedCtx, "/api/logout", undefined, cookie);
+
+    expect(res.status).toBe(401);
+  });
+
+  test("unlock rate limits after five failed attempts", async () => {
+    expect((await post(ctx, "/api/setup", { password: "password1" })).status).toBe(200);
+    for (let attempt = 0; attempt < 5; attempt++) {
+      expect(
+        (await post(ctx, "/api/unlock", { password: "wrong-password" })).status,
+      ).toBe(401);
+    }
+
+    const res = await post(ctx, "/api/unlock", { password: "password1" });
+    expect(res.status).toBe(429);
+    expect(await res.json()).toEqual({
+      error: {
+        code: "TOO_MANY_ATTEMPTS",
+        message: "Too many unlock attempts; try again later",
+      },
+    });
   });
 
   test("password change, logout, and disconnect work for an unlocked session", async () => {
