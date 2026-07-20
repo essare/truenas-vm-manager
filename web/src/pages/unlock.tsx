@@ -19,8 +19,9 @@ export function UnlockPage() {
 
   const unlock = useMutation({
     mutationFn: () => api.unlock(password),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["status"] }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["status"] });
+    },
   });
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {

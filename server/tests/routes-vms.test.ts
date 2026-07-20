@@ -101,11 +101,44 @@ describe("VM routes", () => {
       expect(res.status).toBe(200);
     }
     expect(calls).toEqual([
+      { method: "vm.status", params: [1] },
       { method: "vm.start", params: [1, { overcommit: false }] },
+      { method: "vm.status", params: [1] },
       { method: "vm.restart", params: [1] },
       { method: "vm.poweroff", params: [1] },
     ]);
     expect(closeCount).toBe(3);
+  });
+
+  test("rejects start and restart for suspended VMs without invoking TrueNAS", async () => {
+    ctx.connectTrueNas = async () =>
+      ({
+        async call<T>(method: string, params?: unknown[]) {
+          calls.push({ method, params });
+          if (method === "vm.status") return { state: "SUSPENDED" } as T;
+          return undefined as T;
+        },
+        close() {
+          closeCount += 1;
+        },
+      }) as unknown as TrueNasClient;
+
+    for (const action of ["start", "restart"]) {
+      const res = await request("POST", `/api/vms/1/${action}`, undefined, cookie);
+      expect(res.status).toBe(400);
+      expect(await res.json()).toEqual({
+        error: {
+          code: "INVALID_STATE",
+          message: "Suspended VMs must be powered off before starting or restarting",
+        },
+      });
+    }
+
+    expect(calls).toEqual([
+      { method: "vm.status", params: [1] },
+      { method: "vm.status", params: [1] },
+    ]);
+    expect(closeCount).toBe(2);
   });
 
   test("rejects invalid VM ids and missing onboarding", async () => {

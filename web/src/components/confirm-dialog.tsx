@@ -25,6 +25,8 @@ export function ConfirmDialog({
   onOpenChange,
   open,
 }: ConfirmDialogProps) {
+  const pendingLabel = action === "Power off" ? "Powering off…" : `${action}ing…`;
+
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
       <DialogContent showCloseButton={!isPending}>
@@ -37,7 +39,7 @@ export function ConfirmDialog({
             Cancel
           </Button>
           <Button disabled={isPending} onClick={onConfirm} variant="destructive">
-            {isPending ? `${action}ing…` : action}
+            {isPending ? pendingLabel : action}
           </Button>
         </DialogFooter>
       </DialogContent>

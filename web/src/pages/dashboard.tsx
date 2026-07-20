@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
 import { ConfirmDialog } from "@/components/confirm-dialog";
@@ -19,7 +20,7 @@ type PendingConfirmation = {
 export function DashboardPage() {
   const queryClient = useQueryClient();
   const vmsQuery = useVms();
-  const [pendingVmId, setPendingVmId] = useState<number | null>(null);
+  const [pendingVmIds, setPendingVmIds] = useState<Set<number>>(new Set());
   const [confirmation, setConfirmation] = useState<PendingConfirmation | null>(
     null,
   );
@@ -35,7 +36,13 @@ export function DashboardPage() {
       await refreshVms();
     },
     onError: (error) => toast.error(error.message),
-    onSettled: () => setPendingVmId(null),
+    onSettled: (_data, _error, id) => {
+      setPendingVmIds((ids) => {
+        const next = new Set(ids);
+        next.delete(id);
+        return next;
+      });
+    },
   });
 
   const restart = useMutation({
@@ -45,9 +52,13 @@ export function DashboardPage() {
       await refreshVms();
     },
     onError: (error) => toast.error(error.message),
-    onSettled: () => {
+    onSettled: (_data, _error, id) => {
       setConfirmation(null);
-      setPendingVmId(null);
+      setPendingVmIds((ids) => {
+        const next = new Set(ids);
+        next.delete(id);
+        return next;
+      });
     },
   });
 
@@ -58,17 +69,18 @@ export function DashboardPage() {
       await refreshVms();
     },
     onError: (error) => toast.error(error.message),
-    onSettled: () => {
+    onSettled: (_data, _error, id) => {
       setConfirmation(null);
-      setPendingVmId(null);
+      setPendingVmIds((ids) => {
+        const next = new Set(ids);
+        next.delete(id);
+        return next;
+      });
     },
   });
 
-  const isBusy =
-    start.isPending || restart.isPending || poweroff.isPending;
-
   function handleStart(vm: VmCard) {
-    setPendingVmId(vm.id);
+    setPendingVmIds((ids) => new Set(ids).add(vm.id));
     start.mutate(vm.id);
   }
 
@@ -77,7 +89,7 @@ export function DashboardPage() {
       return;
     }
 
-    setPendingVmId(confirmation.vm.id);
+    setPendingVmIds((ids) => new Set(ids).add(confirmation.vm.id));
     if (confirmation.action === "restart") {
       restart.mutate(confirmation.vm.id);
       return;
@@ -112,11 +124,16 @@ export function DashboardPage() {
   return (
     <main className="min-h-svh bg-muted/30 p-6">
       <div className="mx-auto max-w-6xl space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold">TrueNAS VM Manager</h1>
-          <p className="text-sm text-muted-foreground">
-            Manage your virtual machines.
-          </p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-semibold">TrueNAS VM Manager</h1>
+            <p className="text-sm text-muted-foreground">
+              Manage your virtual machines.
+            </p>
+          </div>
+          <Link className="text-sm font-medium underline-offset-4 hover:underline" to="/settings">
+            Settings
+          </Link>
         </div>
 
         {vms.length === 0 ? (
@@ -130,7 +147,7 @@ export function DashboardPage() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {vms.map((vm) => (
               <VmCardView
-                busy={isBusy && pendingVmId === vm.id}
+                busy={pendingVmIds.has(vm.id)}
                 key={vm.id}
                 onPoweroff={() =>
                   setConfirmation({ action: "poweroff", vm })
@@ -148,10 +165,10 @@ export function DashboardPage() {
         <ConfirmDialog
           action={confirmation.action === "restart" ? "Restart" : "Power off"}
           description={`Are you sure you want to ${confirmation.action === "restart" ? "restart" : "power off"} ${confirmation.vm.name}?`}
-          isPending={isBusy}
+          isPending={pendingVmIds.has(confirmation.vm.id)}
           onConfirm={handleConfirm}
           onOpenChange={(open) => {
-            if (!open && !isBusy) {
+            if (!open && !pendingVmIds.has(confirmation.vm.id)) {
               setConfirmation(null);
             }
           }}

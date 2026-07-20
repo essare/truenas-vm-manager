@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 
@@ -23,6 +23,13 @@ export function SettingsPage() {
   const [apiKey, setApiKey] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const connectedHost = statusQuery.data?.host;
+
+  useEffect(() => {
+    if (connectedHost) {
+      setHost((currentHost) => currentHost || connectedHost);
+    }
+  }, [connectedHost]);
 
   async function refreshStatus() {
     await queryClient.invalidateQueries({ queryKey: ["status"] });

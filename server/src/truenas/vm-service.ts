@@ -78,5 +78,12 @@ export function mapTrueNasError(err: Error): {
   if (/timed out/i.test(msg)) {
     return { code: "TIMEOUT", message: msg, status: 504 };
   }
+  if (msg === "VM_SUSPENDED") {
+    return {
+      code: "INVALID_STATE",
+      message: "Suspended VMs must be powered off before starting or restarting",
+      status: 400,
+    };
+  }
   return { code: "TRUENAS_ERROR", message: msg, status: 502 };
 }

@@ -68,4 +68,56 @@ describe("TrueNasClient", () => {
     expect(info.version).toBe("TrueNAS-25.10");
     client.close();
   });
+
+  test("rejects a call that does not receive a response before its timeout", async () => {
+    server = Bun.serve<undefined>({
+      port: 0,
+      fetch(req, srv) {
+        if (srv.upgrade(req, {})) return undefined;
+        return new Response("fail", { status: 500 });
+      },
+      websocket: {
+        message(ws, message) {
+          const msg = JSON.parse(String(message)) as { id: number; method: string };
+          if (msg.method === "auth.login_ex") {
+            ws.send(
+              JSON.stringify({
+                jsonrpc: "2.0",
+                id: msg.id,
+                result: { response_type: "SUCCESS" },
+              }),
+            );
+          }
+        },
+      },
+    });
+
+    const client = await TrueNasClient.connect(
+      `http://127.0.0.1:${server.port}`,
+      "test-key",
+      10,
+    );
+
+    await expect(client.call("system.info")).rejects.toThrow(
+      "TrueNAS call timed out",
+    );
+    client.close();
+  });
+
+  test("rejects a handshake that does not open before its timeout", async () => {
+    const originalWebSocket = globalThis.WebSocket;
+    class NeverOpeningWebSocket extends EventTarget {
+      close() {}
+      send() {}
+    }
+    globalThis.WebSocket = NeverOpeningWebSocket as unknown as typeof WebSocket;
+
+    try {
+      await expect(
+        TrueNasClient.connect("https://nas.example.test", "test-key", 10),
+      ).rejects.toThrow("TrueNAS WebSocket handshake timed out");
+    } finally {
+      globalThis.WebSocket = originalWebSocket;
+    }
+  });
 });

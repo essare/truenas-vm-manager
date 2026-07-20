@@ -46,8 +46,14 @@ export async function vmPowerRoute(
 
   try {
     await withClient(ctx, async (client) => {
-      if (action === "start") return startVm(client, id);
-      if (action === "restart") return restartVm(client, id);
+      if (action === "start" || action === "restart") {
+        const status = await client.call<{ state: string }>("vm.status", [id]);
+        if (status.state === "SUSPENDED") {
+          throw new Error("VM_SUSPENDED");
+        }
+        if (action === "start") return startVm(client, id);
+        return restartVm(client, id);
+      }
       return poweroffVm(client, id);
     });
     return json({ ok: true });

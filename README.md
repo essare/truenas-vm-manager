@@ -34,6 +34,17 @@ bun run dev:web
 Open the Vite URL shown by the web development server. On first use, set the
 application password, then connect your TrueNAS host with the API key.
 
+## Testing
+
+Use the workspace test script so the web tests run through Vitest with jsdom:
+
+```sh
+bun run test
+```
+
+Avoid bare `bun test` from the repository root; it does not apply the web
+package's Vitest/jsdom configuration.
+
 ## Production
 
 Build the web application, then start the server:

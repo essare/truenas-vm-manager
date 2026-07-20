@@ -1,7 +1,10 @@
 type Pending = {
   resolve: (v: unknown) => void;
   reject: (e: Error) => void;
+  timeout: ReturnType<typeof setTimeout>;
 };
+
+export const TRUENAS_WS_TIMEOUT_MS = 15_000;
 
 function explicitPortFromInput(input: string): string | null {
   const schemeEnd = input.indexOf("://");
@@ -25,29 +28,45 @@ export class TrueNasClient {
   private pending = new Map<number, Pending>();
   private closed = false;
 
-  private constructor(private ws: WebSocket) {
+  private constructor(
+    private ws: WebSocket,
+    private timeoutMs = TRUENAS_WS_TIMEOUT_MS,
+  ) {
     ws.addEventListener("message", (ev) => this.onMessage(String(ev.data)));
     ws.addEventListener("close", () => {
       this.closed = true;
       for (const p of this.pending.values()) {
+        clearTimeout(p.timeout);
         p.reject(new Error("WebSocket closed"));
       }
       this.pending.clear();
     });
   }
 
-  static async connect(host: string, apiKey: string): Promise<TrueNasClient> {
+  static async connect(
+    host: string,
+    apiKey: string,
+    timeoutMs = TRUENAS_WS_TIMEOUT_MS,
+  ): Promise<TrueNasClient> {
     const url = hostToWsUrl(host);
     const ws = new WebSocket(url);
     await new Promise<void>((resolve, reject) => {
-      ws.addEventListener("open", () => resolve(), { once: true });
+      const timeout = setTimeout(() => {
+        ws.close();
+        reject(new Error("TrueNAS WebSocket handshake timed out"));
+      }, timeoutMs);
+      const finish = (callback: () => void) => {
+        clearTimeout(timeout);
+        callback();
+      };
+      ws.addEventListener("open", () => finish(resolve), { once: true });
       ws.addEventListener(
         "error",
-        () => reject(new Error(`Failed to connect to ${url}`)),
+        () => finish(() => reject(new Error(`Failed to connect to ${url}`))),
         { once: true },
       );
     });
-    const client = new TrueNasClient(ws);
+    const client = new TrueNasClient(ws, timeoutMs);
     try {
       const login = await client.call<{ response_type: string }>(
         "auth.login_ex",
@@ -68,11 +87,22 @@ export class TrueNasClient {
     const id = this.nextId++;
     const payload = { jsonrpc: "2.0", id, method, params };
     return new Promise<T>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        this.pending.delete(id);
+        reject(new Error("TrueNAS call timed out"));
+      }, this.timeoutMs);
       this.pending.set(id, {
         resolve: (v) => resolve(v as T),
         reject,
+        timeout,
       });
-      this.ws.send(JSON.stringify(payload));
+      try {
+        this.ws.send(JSON.stringify(payload));
+      } catch (err) {
+        this.pending.delete(id);
+        clearTimeout(timeout);
+        reject(err instanceof Error ? err : new Error("WebSocket send failed"));
+      }
     });
   }
 
@@ -97,6 +127,7 @@ export class TrueNasClient {
     const pending = this.pending.get(msg.id);
     if (!pending) return;
     this.pending.delete(msg.id);
+    clearTimeout(pending.timeout);
     if (msg.error) {
       const reason =
         msg.error.data?.reason ||
