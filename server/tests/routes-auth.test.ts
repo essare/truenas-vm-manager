@@ -96,7 +96,9 @@ describe("auth routes", () => {
 
   test("connect normalizes and saves host without returning API key", async () => {
     const cookie = await setupAndUnlock(ctx);
-    let connectedConfig: { host: string; apiKey: string } | undefined;
+    let connectedConfig:
+      | { host: string; apiKey: string; username: string }
+      | undefined;
     let closed = false;
     ctx.connectTrueNas = async (cfg) => {
       connectedConfig = cfg;
@@ -114,6 +116,7 @@ describe("auth routes", () => {
     expect(connectedConfig).toEqual({
       host: "https://nas.example.test",
       apiKey: "top-secret",
+      username: "root",
     });
     expect(closed).toBe(true);
 
@@ -190,6 +193,47 @@ describe("auth routes", () => {
       }),
     );
     expect(res.status).toBe(200);
+  });
+
+  test("connect accepts http hosts outside production", async () => {
+    const cookie = await setupAndUnlock(ctx);
+    ctx.connectTrueNas = async () =>
+      ({ close: () => {} }) as unknown as TrueNasClient;
+
+    const res = await post(
+      ctx,
+      "/api/truenas/connect",
+      {
+        host: "http://truenas.home.arpa:8080",
+        apiKey: "top-secret",
+        username: "admin",
+      },
+      cookie,
+    );
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      host: "http://truenas.home.arpa:8080",
+    });
+  });
+
+  test("connect rejects http hosts in production", async () => {
+    const prodCtx = createAppContext({ ...ctx.env, isProd: true });
+    const cookie = await setupAndUnlock(prodCtx);
+
+    const res = await post(
+      prodCtx,
+      "/api/truenas/connect",
+      { host: "http://truenas.home.arpa:8080", apiKey: "top-secret" },
+      cookie,
+    );
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({
+      error: {
+        code: "HTTPS_REQUIRED",
+        message:
+          "HTTPS is required in production; use an https:// TrueNAS URL",
+      },
+    });
   });
 
   test("development CORS supports credentialed preflight", async () => {

@@ -32,10 +32,10 @@ export const api = {
       body: JSON.stringify({ password }),
     }),
   logout: () => request("/api/logout", { method: "POST", body: "{}" }),
-  connectTrueNas: (host: string, apiKey: string) =>
+  connectTrueNas: (host: string, apiKey: string, username = "root") =>
     request("/api/truenas/connect", {
       method: "POST",
-      body: JSON.stringify({ host, apiKey }),
+      body: JSON.stringify({ host, apiKey, username }),
     }),
   disconnectTrueNas: () =>
     request("/api/truenas/connect", { method: "DELETE" }),

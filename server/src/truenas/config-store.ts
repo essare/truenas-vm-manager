@@ -2,7 +2,12 @@ import { mkdir, unlink } from "node:fs/promises";
 import path from "node:path";
 import { decryptJson, encryptJson } from "./crypto";
 
-export type TrueNasConfig = { host: string; apiKey: string };
+export type TrueNasConfig = {
+  host: string;
+  apiKey: string;
+  /** TrueNAS account that owns the API key (required by auth.login_ex). */
+  username: string;
+};
 
 function encPath(dataDir: string) {
   return path.join(dataDir, "truenas.enc");
@@ -28,7 +33,15 @@ export async function loadTrueNasConfig(
   const file = Bun.file(encPath(dataDir));
   if (!(await file.exists())) return null;
   const blob = await file.text();
-  return decryptJson<TrueNasConfig>(secret, blob);
+  const cfg = decryptJson<Partial<TrueNasConfig> & { host: string; apiKey: string }>(
+    secret,
+    blob,
+  );
+  return {
+    host: cfg.host,
+    apiKey: cfg.apiKey,
+    username: cfg.username?.trim() || "root",
+  };
 }
 
 export async function deleteTrueNasConfig(dataDir: string): Promise<void> {

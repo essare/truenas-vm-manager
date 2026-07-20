@@ -9,12 +9,38 @@ import {
   type TrueNasConfig,
 } from "../truenas/config-store";
 
-function normalizeHost(host: string): string {
+function normalizeHost(host: string, isProd: boolean): string {
   const url = new URL(host.includes("://") ? host : `https://${host}`);
-  if (!["http:", "https:"].includes(url.protocol) || url.username || url.password) {
+  if (url.username || url.password) {
+    throw new Error("Invalid host URL");
+  }
+  if (url.protocol === "http:") {
+    if (isProd) {
+      throw new Error("HTTP_NOT_ALLOWED");
+    }
+  } else if (url.protocol !== "https:") {
     throw new Error("Invalid host URL");
   }
   return url.origin;
+}
+
+function connectFailureResponse(err: unknown): Response {
+  const message =
+    err instanceof Error && err.message.trim()
+      ? err.message
+      : "Could not connect to TrueNAS";
+
+  if (/timed out/i.test(message)) {
+    return errorJson(504, "TIMEOUT", message);
+  }
+  if (
+    /auth failed|AUTH_ERR|EXPIRED|EINVAL|api key|username|Field required/i.test(
+      message,
+    )
+  ) {
+    return errorJson(401, "TRUENAS_AUTH_FAILED", message);
+  }
+  return errorJson(502, "TRUENAS_CONNECTION_FAILED", message);
 }
 
 export async function connectTrueNasRoute(
@@ -26,7 +52,11 @@ export async function connectTrueNasRoute(
     return json({ ok: true });
   }
 
-  const body = await readJson<{ host?: unknown; apiKey?: unknown }>(req);
+  const body = await readJson<{
+    host?: unknown;
+    apiKey?: unknown;
+    username?: unknown;
+  }>(req);
   if (
     typeof body.host !== "string" ||
     !body.host.trim() ||
@@ -36,22 +66,34 @@ export async function connectTrueNasRoute(
     return errorJson(400, "INVALID_REQUEST", "Host and API key are required");
   }
 
+  const username =
+    typeof body.username === "string" && body.username.trim()
+      ? body.username.trim()
+      : "root";
+
   let cfg: TrueNasConfig;
   try {
-    cfg = { host: normalizeHost(body.host.trim()), apiKey: body.apiKey };
-  } catch {
+    cfg = {
+      host: normalizeHost(body.host.trim(), ctx.env.isProd),
+      apiKey: body.apiKey,
+      username,
+    };
+  } catch (err) {
+    if (err instanceof Error && err.message === "HTTP_NOT_ALLOWED") {
+      return errorJson(
+        400,
+        "HTTPS_REQUIRED",
+        "HTTPS is required in production; use an https:// TrueNAS URL",
+      );
+    }
     return errorJson(400, "INVALID_HOST", "Enter a valid TrueNAS host URL");
   }
 
   let client;
   try {
     client = await connectTrueNas(ctx, cfg);
-  } catch {
-    return errorJson(
-      502,
-      "TRUENAS_CONNECTION_FAILED",
-      "Could not connect to TrueNAS",
-    );
+  } catch (err) {
+    return connectFailureResponse(err);
   }
   client.close();
 

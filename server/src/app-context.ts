@@ -4,7 +4,7 @@ import {
   loadTrueNasConfig,
   type TrueNasConfig,
 } from "./truenas/config-store";
-import { TrueNasClient } from "./truenas/ws-client";
+import { TrueNasClient, TRUENAS_WS_TIMEOUT_MS } from "./truenas/ws-client";
 
 export type AppContext = {
   env: Env;
@@ -31,7 +31,12 @@ export async function connectTrueNas(
 ): Promise<TrueNasClient> {
   return ctx.connectTrueNas
     ? ctx.connectTrueNas(cfg)
-    : TrueNasClient.connect(cfg.host, cfg.apiKey);
+    : TrueNasClient.connect(
+        cfg.host,
+        cfg.apiKey,
+        TRUENAS_WS_TIMEOUT_MS,
+        cfg.username,
+      );
 }
 
 export async function withClient<T>(

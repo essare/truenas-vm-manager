@@ -40,6 +40,16 @@ describe("TrueNasClient", () => {
             params: unknown[];
           };
           if (msg.method === "auth.login_ex") {
+            const login = msg.params[0] as {
+              mechanism?: string;
+              username?: string;
+              api_key?: string;
+            };
+            expect(login).toMatchObject({
+              mechanism: "API_KEY_PLAIN",
+              username: "root",
+              api_key: "test-key",
+            });
             ws.send(
               JSON.stringify({
                 jsonrpc: "2.0",

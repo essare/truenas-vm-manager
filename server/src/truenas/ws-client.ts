@@ -47,6 +47,7 @@ export class TrueNasClient {
     host: string,
     apiKey: string,
     timeoutMs = TRUENAS_WS_TIMEOUT_MS,
+    username = "root",
   ): Promise<TrueNasClient> {
     const url = hostToWsUrl(host);
     const ws = new WebSocket(url);
@@ -70,7 +71,13 @@ export class TrueNasClient {
     try {
       const login = await client.call<{ response_type: string }>(
         "auth.login_ex",
-        [{ mechanism: "API_KEY_PLAIN", api_key: apiKey }],
+        [
+          {
+            mechanism: "API_KEY_PLAIN",
+            username,
+            api_key: apiKey,
+          },
+        ],
       );
       if (login.response_type !== "SUCCESS") {
         throw new Error(`TrueNAS auth failed: ${login.response_type}`);

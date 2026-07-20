@@ -20,6 +20,7 @@ export function SettingsPage() {
   const queryClient = useQueryClient();
   const statusQuery = useAppStatus();
   const [host, setHost] = useState("");
+  const [username, setUsername] = useState("root");
   const [apiKey, setApiKey] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -36,7 +37,7 @@ export function SettingsPage() {
   }
 
   const reconnect = useMutation({
-    mutationFn: () => api.connectTrueNas(host, apiKey),
+    mutationFn: () => api.connectTrueNas(host, apiKey, username),
     onSuccess: async () => {
       await refreshStatus();
       navigate("/", { replace: true });
@@ -103,10 +104,22 @@ export function SettingsPage() {
                 <Input
                   id="host"
                   onChange={(event) => setHost(event.target.value)}
-                  placeholder="https://truenas.example.com"
+                  placeholder="http://truenas.home.arpa:8080"
                   required
-                  type="url"
+                  type="text"
                   value={host}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="username">Username</Label>
+                <Input
+                  autoComplete="username"
+                  id="username"
+                  onChange={(event) => setUsername(event.target.value)}
+                  placeholder="root"
+                  required
+                  type="text"
+                  value={username}
                 />
               </div>
               <div className="space-y-2">
