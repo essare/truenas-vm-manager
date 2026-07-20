@@ -1,3 +1,5 @@
+import { timingSafeEqual } from "node:crypto";
+
 export const COOKIE_NAME = "app_session";
 const MAX_AGE_SEC = 60 * 60 * 24 * 7; // 7 days
 
@@ -37,7 +39,10 @@ export function parseSession(
   const expected = new Bun.CryptoHasher("sha256", secret)
     .update(payload)
     .digest("base64url");
-  if (sig !== expected) return null;
+  const sigBuf = Buffer.from(sig, "utf8");
+  const expectedBuf = Buffer.from(expected, "utf8");
+  if (sigBuf.length !== expectedBuf.length) return null;
+  if (!timingSafeEqual(sigBuf, expectedBuf)) return null;
   try {
     const data = JSON.parse(
       Buffer.from(payload, "base64url").toString("utf8"),
