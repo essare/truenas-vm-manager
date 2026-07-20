@@ -69,7 +69,7 @@ export class TrueNasClient {
     const wsHost = new URL(url).hostname;
     if (url.startsWith("ws://") && !isLoopbackHostname(wsHost)) {
       throw new Error(
-        "TrueNAS disables API keys used over plain HTTP/WS. Use an https:// URL (for example https://truenas.home.arpa:4443).",
+        "TrueNAS disables API keys used over plain HTTP/WS. Use an https:// URL (for example https://192.168.1.10:443).",
       );
     }
 

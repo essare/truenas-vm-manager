@@ -10,7 +10,7 @@ import {
 } from "../truenas/config-store";
 
 const HTTP_API_KEY_MESSAGE =
-  "TrueNAS disables API keys used over plain HTTP. Use https://truenas.home.arpa:4443 (or your TLS UI port), not http://…:8080.";
+  "TrueNAS disables API keys used over plain HTTP. Use https://192.168.1.10:443, not http://…:8080.";
 
 function normalizeHost(host: string): string {
   const url = new URL(host.includes("://") ? host : `https://${host}`);

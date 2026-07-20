@@ -18,6 +18,7 @@ describe("listVms", () => {
         {
           id: 1,
           name: "media",
+          description: "ubuntu media server",
           vcpus: 4,
           memory: 8 * 1024 * 1024 * 1024,
           autostart: true,
@@ -33,6 +34,34 @@ describe("listVms", () => {
         vcpus: 4,
         memoryBytes: 8 * 1024 * 1024 * 1024,
         autostart: true,
+        guestOs: "linux",
+      },
+    ]);
+  });
+
+  test("infers windows from hyperv enlightenments", async () => {
+    const client = mockClient({
+      "vm.query": () => [
+        {
+          id: 2,
+          name: "desktop",
+          vcpus: 2,
+          memory: 4 * 1024 * 1024 * 1024,
+          autostart: false,
+          hyperv_enlightenments: true,
+        },
+      ],
+      "vm.status": () => ({ state: "STOPPED", pid: null, domain_state: "shut off" }),
+    });
+    expect(await listVms(client)).toEqual([
+      {
+        id: 2,
+        name: "desktop",
+        state: "STOPPED",
+        vcpus: 2,
+        memoryBytes: 4 * 1024 * 1024 * 1024,
+        autostart: false,
+        guestOs: "windows",
       },
     ]);
   });

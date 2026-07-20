@@ -1,6 +1,6 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -80,11 +80,19 @@ export function SettingsPage() {
   return (
     <main className="min-h-svh bg-muted/30 p-6">
       <div className="mx-auto max-w-2xl space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold">Settings</h1>
-          <p className="text-sm text-muted-foreground">
-            Manage your TrueNAS connection and application access.
-          </p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-semibold">Settings</h1>
+            <p className="text-sm text-muted-foreground">
+              Manage your TrueNAS connection and application access.
+            </p>
+          </div>
+          <Link
+            className="text-sm font-medium underline-offset-4 hover:underline"
+            to="/"
+          >
+            Back to VMs
+          </Link>
         </div>
 
         <Card>
@@ -103,7 +111,7 @@ export function SettingsPage() {
                 <Input
                   id="host"
                   onChange={(event) => setHost(event.target.value)}
-                  placeholder="https://truenas.home.arpa:4443"
+                  placeholder="https://192.168.1.10:443"
                   required
                   type="text"
                   value={host}

@@ -39,7 +39,7 @@ export function OnboardingPage() {
         <CardHeader>
           <CardTitle>Connect your TrueNAS system</CardTitle>
           <CardDescription>
-            Use the HTTPS address (for example https://truenas.home.arpa:4443).
+            Use the HTTPS address (for example https://192.168.1.10:443).
             Plain http:// will disable your API key on TrueNAS.
           </CardDescription>
         </CardHeader>
@@ -51,7 +51,7 @@ export function OnboardingPage() {
                 autoFocus
                 id="host"
                 onChange={(event) => setHost(event.target.value)}
-                placeholder="https://truenas.home.arpa:4443"
+                placeholder="https://192.168.1.10:443"
                 required
                 type="text"
                 value={host}

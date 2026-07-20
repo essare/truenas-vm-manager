@@ -1,3 +1,6 @@
+import { Loader2 } from "lucide-react";
+
+import { GuestOsIcon } from "@/components/guest-os-icon";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import type { VmCard } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 type VmCardViewProps = {
   busy: boolean;
@@ -31,6 +35,16 @@ function humanizeMemory(memoryBytes: number) {
   return `${Number(value.toFixed(1))} ${unit}`;
 }
 
+function stateBadgeClass(state: string) {
+  if (state === "RUNNING") {
+    return "border-transparent bg-emerald-600 text-white hover:bg-emerald-600";
+  }
+  if (state === "STOPPED") {
+    return "border-transparent bg-red-600 text-white hover:bg-red-600";
+  }
+  return undefined;
+}
+
 export function VmCardView({
   busy,
   onPoweroff,
@@ -39,14 +53,23 @@ export function VmCardView({
   vm,
 }: VmCardViewProps) {
   const stateLabel = stateLabels[vm.state] ?? vm.state;
+  const starting = busy && vm.state === "STOPPED";
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{vm.name}</CardTitle>
-        <Badge variant={vm.state === "RUNNING" ? "default" : "secondary"}>
-          {stateLabel}
-        </Badge>
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <GuestOsIcon guestOs={vm.guestOs} />
+            <CardTitle className="truncate">{vm.name}</CardTitle>
+          </div>
+          <Badge
+            className={cn(stateBadgeClass(vm.state))}
+            variant={vm.state === "RUNNING" ? "default" : "secondary"}
+          >
+            {stateLabel}
+          </Badge>
+        </div>
       </CardHeader>
       <CardContent>
         <dl className="grid grid-cols-2 gap-3 text-sm">
@@ -67,7 +90,14 @@ export function VmCardView({
       <CardFooter className="gap-2">
         {vm.state === "STOPPED" ? (
           <Button disabled={busy} onClick={onStart}>
-            Start
+            {starting ? (
+              <>
+                <Loader2 aria-hidden className="animate-spin" />
+                Starting…
+              </>
+            ) : (
+              "Start"
+            )}
           </Button>
         ) : null}
         {vm.state === "RUNNING" ? (

@@ -5,6 +5,8 @@ export type VmCard = {
   vcpus: number;
   memoryBytes: number;
   autostart: boolean;
+  /** Best-effort guest OS hint from TrueNAS metadata. */
+  guestOs: "windows" | "linux" | "unknown";
 };
 
 export type VmCallClient = {
@@ -14,12 +16,32 @@ export type VmCallClient = {
 type VmQueryRow = {
   id: number;
   name: string;
+  description?: string;
   vcpus?: number;
   memory?: number;
   autostart?: boolean;
+  hyperv_enlightenments?: boolean;
 };
 
 type VmStatus = { state: string };
+
+export function inferGuestOs(row: {
+  name: string;
+  description?: string;
+  hyperv_enlightenments?: boolean;
+}): VmCard["guestOs"] {
+  if (row.hyperv_enlightenments) return "windows";
+  const text = `${row.name} ${row.description ?? ""}`.toLowerCase();
+  if (/\b(windows|win(10|11|server)?|microsoft)\b/.test(text)) return "windows";
+  if (
+    /\b(linux|ubuntu|debian|fedora|centos|rhel|rocky|alma|arch|suse|alpine|nixos|freebsd)\b/.test(
+      text,
+    )
+  ) {
+    return "linux";
+  }
+  return "unknown";
+}
 
 export async function listVms(client: VmCallClient): Promise<VmCard[]> {
   const rows = await client.call<VmQueryRow[]>("vm.query", [[], {}]);
@@ -33,6 +55,7 @@ export async function listVms(client: VmCallClient): Promise<VmCard[]> {
       vcpus: row.vcpus ?? 0,
       memoryBytes: row.memory ?? 0,
       autostart: Boolean(row.autostart),
+      guestOs: inferGuestOs(row),
     });
   }
   return cards;

@@ -85,6 +85,7 @@ describe("VM routes", () => {
           vcpus: 2,
           memoryBytes: 4_294_967_296,
           autostart: true,
+          guestOs: "unknown",
         },
       ],
     });

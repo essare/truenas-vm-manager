@@ -10,6 +10,7 @@ const base = {
   vcpus: 4,
   memoryBytes: 4 * 1024 ** 3,
   autostart: true,
+  guestOs: "linux" as const,
 };
 
 afterEach(cleanup);
@@ -64,6 +65,21 @@ describe("VmCardView", () => {
     expect(screen.queryByRole("button", { name: /start/i })).toBeNull();
     expect(
       screen.getByRole("button", { name: /power off/i }),
+    ).toBeInTheDocument();
+  });
+
+  test("start button shows spinner while busy", () => {
+    render(
+      <VmCardView
+        vm={{ ...base, state: "STOPPED" }}
+        busy
+        onStart={vi.fn()}
+        onRestart={vi.fn()}
+        onPoweroff={vi.fn()}
+      />,
+    );
+    expect(
+      screen.getByRole("button", { name: /starting/i }),
     ).toBeInTheDocument();
   });
 });

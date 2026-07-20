@@ -5,6 +5,8 @@ export type AppStatus = {
   host?: string;
 };
 
+export type GuestOs = "windows" | "linux" | "unknown";
+
 export type VmCard = {
   id: number;
   name: string;
@@ -12,4 +14,5 @@ export type VmCard = {
   vcpus: number;
   memoryBytes: number;
   autostart: boolean;
+  guestOs: GuestOs;
 };
