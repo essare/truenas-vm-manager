@@ -4,11 +4,12 @@ type Pending = {
 };
 
 export function hostToWsUrl(host: string): string {
-  const input = host.includes("://") ? host : `https://${host}`;
-  const u = new URL(input);
-  const wsProtocol = u.protocol === "http:" ? "ws:" : "wss:";
-  const explicitPort = /:\d+(?=\/|$|\?|#)/.exec(input)?.[0] ?? "";
-  return `${wsProtocol}//${u.hostname}${explicitPort}/api/current`;
+  const u = new URL(host.includes("://") ? host : `https://${host}`);
+  u.protocol = u.protocol === "http:" ? "ws:" : "wss:";
+  u.pathname = "/api/current";
+  u.search = "";
+  u.hash = "";
+  return u.toString();
 }
 
 export class TrueNasClient {
@@ -39,14 +40,19 @@ export class TrueNasClient {
       );
     });
     const client = new TrueNasClient(ws);
-    const login = await client.call<{ response_type: string }>("auth.login_ex", [
-      { mechanism: "API_KEY_PLAIN", api_key: apiKey },
-    ]);
-    if (login.response_type !== "SUCCESS") {
+    try {
+      const login = await client.call<{ response_type: string }>(
+        "auth.login_ex",
+        [{ mechanism: "API_KEY_PLAIN", api_key: apiKey }],
+      );
+      if (login.response_type !== "SUCCESS") {
+        throw new Error(`TrueNAS auth failed: ${login.response_type}`);
+      }
+      return client;
+    } catch (err) {
       client.close();
-      throw new Error(`TrueNAS auth failed: ${login.response_type}`);
+      throw err;
     }
-    return client;
   }
 
   call<T>(method: string, params: unknown[] = []): Promise<T> {

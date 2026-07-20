@@ -4,7 +4,10 @@ import { hostToWsUrl, TrueNasClient } from "../src/truenas/ws-client";
 describe("hostToWsUrl", () => {
   test("https → wss /api/current", () => {
     expect(hostToWsUrl("https://nas.example:443")).toBe(
-      "wss://nas.example:443/api/current",
+      "wss://nas.example/api/current",
+    );
+    expect(hostToWsUrl("https://nas.example:8443")).toBe(
+      "wss://nas.example:8443/api/current",
     );
   });
   test("http → ws", () => {
@@ -23,10 +26,10 @@ describe("TrueNasClient", () => {
   });
 
   test("login + call", async () => {
-    server = Bun.serve({
+    server = Bun.serve<undefined>({
       port: 0,
       fetch(req, srv) {
-        if (srv.upgrade(req)) return undefined;
+        if (srv.upgrade(req, {})) return undefined;
         return new Response("fail", { status: 500 });
       },
       websocket: {
