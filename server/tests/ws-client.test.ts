@@ -96,7 +96,7 @@ describe("TrueNasClient", () => {
     const client = await TrueNasClient.connect(
       `http://127.0.0.1:${server.port}`,
       "test-key",
-      10,
+      { timeoutMs: 10 },
     );
 
     await expect(client.call("system.info")).rejects.toThrow(
@@ -115,7 +115,9 @@ describe("TrueNasClient", () => {
 
     try {
       await expect(
-        TrueNasClient.connect("https://nas.example.test", "test-key", 10),
+        TrueNasClient.connect("https://nas.example.test", "test-key", {
+          timeoutMs: 10,
+        }),
       ).rejects.toThrow("TrueNAS WebSocket handshake timed out");
     } finally {
       globalThis.WebSocket = originalWebSocket;

@@ -103,7 +103,7 @@ export function SettingsPage() {
                 <Input
                   id="host"
                   onChange={(event) => setHost(event.target.value)}
-                  placeholder="http://truenas.home.arpa:8080"
+                  placeholder="https://truenas.home.arpa:4443"
                   required
                   type="text"
                   value={host}

@@ -19,6 +19,9 @@ A small web interface for managing virtual machines on a TrueNAS system.
 3. In TrueNAS, create an API key for the account that will manage VMs. The key
    needs the `VM_READ` and `VM_WRITE` roles.
 
+   **Important:** use the HTTPS UI URL (for example `https://truenas.home.arpa:4443`).
+   Connecting with plain `http://` causes TrueNAS to **disable** the API key.
+
 ## Development
 
 Run the API server and web development server in separate terminals:

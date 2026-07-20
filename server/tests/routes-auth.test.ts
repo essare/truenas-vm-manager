@@ -192,10 +192,8 @@ describe("auth routes", () => {
     expect(res.status).toBe(200);
   });
 
-  test("connect accepts http hosts outside production", async () => {
+  test("connect rejects http hosts because TrueNAS disables API keys", async () => {
     const cookie = await setupAndUnlock(ctx);
-    ctx.connectTrueNas = async () =>
-      ({ close: () => {} }) as unknown as TrueNasClient;
 
     const res = await post(
       ctx,
@@ -206,9 +204,29 @@ describe("auth routes", () => {
       },
       cookie,
     );
+    expect(res.status).toBe(400);
+    expect(await res.json()).toMatchObject({
+      error: { code: "HTTPS_REQUIRED" },
+    });
+  });
+
+  test("connect accepts https hosts", async () => {
+    const cookie = await setupAndUnlock(ctx);
+    ctx.connectTrueNas = async () =>
+      ({ close: () => {} }) as unknown as TrueNasClient;
+
+    const res = await post(
+      ctx,
+      "/api/truenas/connect",
+      {
+        host: "https://truenas.home.arpa:4443",
+        apiKey: "top-secret",
+      },
+      cookie,
+    );
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({
-      host: "http://truenas.home.arpa:8080",
+      host: "https://truenas.home.arpa:4443",
     });
   });
 
@@ -223,12 +241,8 @@ describe("auth routes", () => {
       cookie,
     );
     expect(res.status).toBe(400);
-    expect(await res.json()).toEqual({
-      error: {
-        code: "HTTPS_REQUIRED",
-        message:
-          "HTTPS is required in production; use an https:// TrueNAS URL",
-      },
+    expect(await res.json()).toMatchObject({
+      error: { code: "HTTPS_REQUIRED" },
     });
   });
 

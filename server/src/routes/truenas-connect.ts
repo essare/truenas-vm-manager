@@ -9,16 +9,18 @@ import {
   type TrueNasConfig,
 } from "../truenas/config-store";
 
-function normalizeHost(host: string, isProd: boolean): string {
+const HTTP_API_KEY_MESSAGE =
+  "TrueNAS disables API keys used over plain HTTP. Use https://truenas.home.arpa:4443 (or your TLS UI port), not http://…:8080.";
+
+function normalizeHost(host: string): string {
   const url = new URL(host.includes("://") ? host : `https://${host}`);
   if (url.username || url.password) {
     throw new Error("Invalid host URL");
   }
   if (url.protocol === "http:") {
-    if (isProd) {
-      throw new Error("HTTP_NOT_ALLOWED");
-    }
-  } else if (url.protocol !== "https:") {
+    throw new Error("HTTP_NOT_ALLOWED");
+  }
+  if (url.protocol !== "https:") {
     throw new Error("Invalid host URL");
   }
   return url.origin;
@@ -33,8 +35,11 @@ function connectFailureResponse(err: unknown): Response {
   if (/timed out/i.test(message)) {
     return errorJson(504, "TIMEOUT", message);
   }
+  if (/plain HTTP|disables API keys/i.test(message)) {
+    return errorJson(400, "HTTPS_REQUIRED", message);
+  }
   if (
-    /auth failed|AUTH_ERR|EXPIRED|EINVAL|api key|invalid API key/i.test(
+    /auth failed|AUTH_ERR|EXPIRED|EINVAL|api key|rejected the API key/i.test(
       message,
     )
   ) {
@@ -60,7 +65,7 @@ export async function connectTrueNasRoute(
     typeof body.host !== "string" ||
     !body.host.trim() ||
     typeof body.apiKey !== "string" ||
-    !body.apiKey
+    !body.apiKey.trim()
   ) {
     return errorJson(400, "INVALID_REQUEST", "Host and API key are required");
   }
@@ -68,16 +73,12 @@ export async function connectTrueNasRoute(
   let cfg: TrueNasConfig;
   try {
     cfg = {
-      host: normalizeHost(body.host.trim(), ctx.env.isProd),
-      apiKey: body.apiKey,
+      host: normalizeHost(body.host.trim()),
+      apiKey: body.apiKey.trim(),
     };
   } catch (err) {
     if (err instanceof Error && err.message === "HTTP_NOT_ALLOWED") {
-      return errorJson(
-        400,
-        "HTTPS_REQUIRED",
-        "HTTPS is required in production; use an https:// TrueNAS URL",
-      );
+      return errorJson(400, "HTTPS_REQUIRED", HTTP_API_KEY_MESSAGE);
     }
     return errorJson(400, "INVALID_HOST", "Enter a valid TrueNAS host URL");
   }

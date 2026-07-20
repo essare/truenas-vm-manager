@@ -23,6 +23,21 @@ export function hostToWsUrl(host: string): string {
   return `${protocol}//${hostPart}/api/current`;
 }
 
+export type TrueNasConnectOptions = {
+  timeoutMs?: number;
+  /** Allow self-signed / untrusted TLS certs (typical for LAN TrueNAS). */
+  tlsInsecure?: boolean;
+};
+
+function isLoopbackHostname(hostname: string): boolean {
+  return (
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    hostname === "[::1]" ||
+    hostname === "::1"
+  );
+}
+
 export class TrueNasClient {
   private nextId = 1;
   private pending = new Map<number, Pending>();
@@ -46,10 +61,26 @@ export class TrueNasClient {
   static async connect(
     host: string,
     apiKey: string,
-    timeoutMs = TRUENAS_WS_TIMEOUT_MS,
+    options: TrueNasConnectOptions = {},
   ): Promise<TrueNasClient> {
+    const timeoutMs = options.timeoutMs ?? TRUENAS_WS_TIMEOUT_MS;
+    const tlsInsecure = options.tlsInsecure ?? true;
     const url = hostToWsUrl(host);
-    const ws = new WebSocket(url);
+    const wsHost = new URL(url).hostname;
+    if (url.startsWith("ws://") && !isLoopbackHostname(wsHost)) {
+      throw new Error(
+        "TrueNAS disables API keys used over plain HTTP/WS. Use an https:// URL (for example https://truenas.home.arpa:4443).",
+      );
+    }
+
+    // Bun's WebSocket client accepts TLS options; DOM typings do not.
+    const ws = new WebSocket(
+      url,
+      url.startsWith("wss://") && tlsInsecure
+        ? ({ tls: { rejectUnauthorized: false } } as never)
+        : undefined,
+    );
+
     await new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(() => {
         ws.close();
@@ -62,18 +93,27 @@ export class TrueNasClient {
       ws.addEventListener("open", () => finish(resolve), { once: true });
       ws.addEventListener(
         "error",
-        () => finish(() => reject(new Error(`Failed to connect to ${url}`))),
+        () =>
+          finish(() =>
+            reject(
+              new Error(
+                `Failed to connect to ${url}. If the certificate is self-signed, TLS insecure mode must be enabled.`,
+              ),
+            ),
+          ),
         { once: true },
       );
     });
     const client = new TrueNasClient(ws, timeoutMs);
     try {
-      // Prefer the same method used by our proven TrueNAS scripts
-      // (/Volumes/infra/Scripts/truenas-api.py). auth.login_ex + API_KEY_PLAIN
-      // returns EXPIRED on some 25.10 setups even with fresh keys.
-      const ok = await client.call<boolean>("auth.login_with_api_key", [apiKey]);
+      // Same method as /Volumes/infra/Scripts/truenas-api.py
+      const ok = await client.call<boolean>("auth.login_with_api_key", [
+        apiKey.trim(),
+      ]);
       if (ok !== true) {
-        throw new Error("TrueNAS auth failed: invalid API key");
+        throw new Error(
+          "TrueNAS rejected the API key. Create a new key and connect over https:// (not http://) — plain HTTP causes TrueNAS to disable keys.",
+        );
       }
       return client;
     } catch (err) {
