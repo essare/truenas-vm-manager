@@ -20,7 +20,6 @@ export function SettingsPage() {
   const queryClient = useQueryClient();
   const statusQuery = useAppStatus();
   const [host, setHost] = useState("");
-  const [username, setUsername] = useState("root");
   const [apiKey, setApiKey] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -37,7 +36,7 @@ export function SettingsPage() {
   }
 
   const reconnect = useMutation({
-    mutationFn: () => api.connectTrueNas(host, apiKey, username),
+    mutationFn: () => api.connectTrueNas(host, apiKey),
     onSuccess: async () => {
       await refreshStatus();
       navigate("/", { replace: true });
@@ -108,18 +107,6 @@ export function SettingsPage() {
                   required
                   type="text"
                   value={host}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="username">Username</Label>
-                <Input
-                  autoComplete="username"
-                  id="username"
-                  onChange={(event) => setUsername(event.target.value)}
-                  placeholder="root"
-                  required
-                  type="text"
-                  value={username}
                 />
               </div>
               <div className="space-y-2">

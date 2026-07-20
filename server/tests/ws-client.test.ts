@@ -39,22 +39,13 @@ describe("TrueNasClient", () => {
             method: string;
             params: unknown[];
           };
-          if (msg.method === "auth.login_ex") {
-            const login = msg.params[0] as {
-              mechanism?: string;
-              username?: string;
-              api_key?: string;
-            };
-            expect(login).toMatchObject({
-              mechanism: "API_KEY_PLAIN",
-              username: "root",
-              api_key: "test-key",
-            });
+          if (msg.method === "auth.login_with_api_key") {
+            expect(msg.params).toEqual(["test-key"]);
             ws.send(
               JSON.stringify({
                 jsonrpc: "2.0",
                 id: msg.id,
-                result: { response_type: "SUCCESS" },
+                result: true,
               }),
             );
             return;
@@ -89,12 +80,12 @@ describe("TrueNasClient", () => {
       websocket: {
         message(ws, message) {
           const msg = JSON.parse(String(message)) as { id: number; method: string };
-          if (msg.method === "auth.login_ex") {
+          if (msg.method === "auth.login_with_api_key") {
             ws.send(
               JSON.stringify({
                 jsonrpc: "2.0",
                 id: msg.id,
-                result: { response_type: "SUCCESS" },
+                result: true,
               }),
             );
           }

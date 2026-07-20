@@ -47,7 +47,6 @@ export class TrueNasClient {
     host: string,
     apiKey: string,
     timeoutMs = TRUENAS_WS_TIMEOUT_MS,
-    username = "root",
   ): Promise<TrueNasClient> {
     const url = hostToWsUrl(host);
     const ws = new WebSocket(url);
@@ -69,18 +68,12 @@ export class TrueNasClient {
     });
     const client = new TrueNasClient(ws, timeoutMs);
     try {
-      const login = await client.call<{ response_type: string }>(
-        "auth.login_ex",
-        [
-          {
-            mechanism: "API_KEY_PLAIN",
-            username,
-            api_key: apiKey,
-          },
-        ],
-      );
-      if (login.response_type !== "SUCCESS") {
-        throw new Error(`TrueNAS auth failed: ${login.response_type}`);
+      // Prefer the same method used by our proven TrueNAS scripts
+      // (/Volumes/infra/Scripts/truenas-api.py). auth.login_ex + API_KEY_PLAIN
+      // returns EXPIRED on some 25.10 setups even with fresh keys.
+      const ok = await client.call<boolean>("auth.login_with_api_key", [apiKey]);
+      if (ok !== true) {
+        throw new Error("TrueNAS auth failed: invalid API key");
       }
       return client;
     } catch (err) {

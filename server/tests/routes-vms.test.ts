@@ -48,7 +48,7 @@ describe("VM routes", () => {
     await request(
       "POST",
       "/api/truenas/connect",
-      { host: "https://nas.example.test", apiKey: "secret", username: "root" },
+      { host: "https://nas.example.test", apiKey: "secret" },
       cookie,
     );
     calls = [];

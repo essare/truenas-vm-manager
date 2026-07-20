@@ -31,12 +31,7 @@ export async function connectTrueNas(
 ): Promise<TrueNasClient> {
   return ctx.connectTrueNas
     ? ctx.connectTrueNas(cfg)
-    : TrueNasClient.connect(
-        cfg.host,
-        cfg.apiKey,
-        TRUENAS_WS_TIMEOUT_MS,
-        cfg.username,
-      );
+    : TrueNasClient.connect(cfg.host, cfg.apiKey, TRUENAS_WS_TIMEOUT_MS);
 }
 
 export async function withClient<T>(

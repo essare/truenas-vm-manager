@@ -18,11 +18,10 @@ export function OnboardingPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [host, setHost] = useState("");
-  const [username, setUsername] = useState("root");
   const [apiKey, setApiKey] = useState("");
 
   const connect = useMutation({
-    mutationFn: () => api.connectTrueNas(host, apiKey, username),
+    mutationFn: () => api.connectTrueNas(host, apiKey),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["status"] });
       navigate("/", { replace: true });
@@ -55,18 +54,6 @@ export function OnboardingPage() {
                 required
                 type="text"
                 value={host}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
-              <Input
-                autoComplete="username"
-                id="username"
-                onChange={(event) => setUsername(event.target.value)}
-                placeholder="root"
-                required
-                type="text"
-                value={username}
               />
             </div>
             <div className="space-y-2">

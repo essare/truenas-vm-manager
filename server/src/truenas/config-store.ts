@@ -5,8 +5,8 @@ import { decryptJson, encryptJson } from "./crypto";
 export type TrueNasConfig = {
   host: string;
   apiKey: string;
-  /** TrueNAS account that owns the API key (required by auth.login_ex). */
-  username: string;
+  /** Optional; retained for older encrypted configs. Auth uses API key only. */
+  username?: string;
 };
 
 function encPath(dataDir: string) {
@@ -33,14 +33,14 @@ export async function loadTrueNasConfig(
   const file = Bun.file(encPath(dataDir));
   if (!(await file.exists())) return null;
   const blob = await file.text();
-  const cfg = decryptJson<Partial<TrueNasConfig> & { host: string; apiKey: string }>(
+  const cfg = decryptJson<{ host: string; apiKey: string; username?: string }>(
     secret,
     blob,
   );
   return {
     host: cfg.host,
     apiKey: cfg.apiKey,
-    username: cfg.username?.trim() || "root",
+    ...(cfg.username ? { username: cfg.username } : {}),
   };
 }
 

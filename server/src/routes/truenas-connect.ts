@@ -34,7 +34,7 @@ function connectFailureResponse(err: unknown): Response {
     return errorJson(504, "TIMEOUT", message);
   }
   if (
-    /auth failed|AUTH_ERR|EXPIRED|EINVAL|api key|username|Field required/i.test(
+    /auth failed|AUTH_ERR|EXPIRED|EINVAL|api key|invalid API key/i.test(
       message,
     )
   ) {
@@ -55,7 +55,6 @@ export async function connectTrueNasRoute(
   const body = await readJson<{
     host?: unknown;
     apiKey?: unknown;
-    username?: unknown;
   }>(req);
   if (
     typeof body.host !== "string" ||
@@ -66,17 +65,11 @@ export async function connectTrueNasRoute(
     return errorJson(400, "INVALID_REQUEST", "Host and API key are required");
   }
 
-  const username =
-    typeof body.username === "string" && body.username.trim()
-      ? body.username.trim()
-      : "root";
-
   let cfg: TrueNasConfig;
   try {
     cfg = {
       host: normalizeHost(body.host.trim(), ctx.env.isProd),
       apiKey: body.apiKey,
-      username,
     };
   } catch (err) {
     if (err instanceof Error && err.message === "HTTP_NOT_ALLOWED") {

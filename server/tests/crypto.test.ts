@@ -34,13 +34,11 @@ describe("truenas crypto + store", () => {
     await saveTrueNasConfig(dataDir, secret, {
       host: "https://nas.local",
       apiKey: "secret-key",
-      username: "root",
     });
     expect(await hasTrueNasConfig(dataDir)).toBe(true);
     expect(await loadTrueNasConfig(dataDir, secret)).toEqual({
       host: "https://nas.local",
       apiKey: "secret-key",
-      username: "root",
     });
     await deleteTrueNasConfig(dataDir);
     expect(await hasTrueNasConfig(dataDir)).toBe(false);

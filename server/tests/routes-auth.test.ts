@@ -96,9 +96,7 @@ describe("auth routes", () => {
 
   test("connect normalizes and saves host without returning API key", async () => {
     const cookie = await setupAndUnlock(ctx);
-    let connectedConfig:
-      | { host: string; apiKey: string; username: string }
-      | undefined;
+    let connectedConfig: { host: string; apiKey: string } | undefined;
     let closed = false;
     ctx.connectTrueNas = async (cfg) => {
       connectedConfig = cfg;
@@ -116,7 +114,6 @@ describe("auth routes", () => {
     expect(connectedConfig).toEqual({
       host: "https://nas.example.test",
       apiKey: "top-secret",
-      username: "root",
     });
     expect(closed).toBe(true);
 
@@ -206,7 +203,6 @@ describe("auth routes", () => {
       {
         host: "http://truenas.home.arpa:8080",
         apiKey: "top-secret",
-        username: "admin",
       },
       cookie,
     );
