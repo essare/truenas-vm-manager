@@ -1,6 +1,5 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
-import { readFile } from "node:fs/promises";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import {
@@ -25,6 +24,11 @@ describe("app-password", () => {
     expect(await isSetupComplete(dataDir)).toBe(true);
     expect(await verifyAppPassword(dataDir, "correct-horse")).toBe(true);
     expect(await verifyAppPassword(dataDir, "wrong")).toBe(false);
+  });
+
+  test("createAppPassword leaves only app.json in dataDir", async () => {
+    await createAppPassword(dataDir, "correct-horse");
+    expect(await readdir(dataDir)).toEqual(["app.json"]);
   });
 
   test("app.json does not store plaintext password", async () => {

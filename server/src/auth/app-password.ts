@@ -1,4 +1,5 @@
-import { mkdir, open } from "node:fs/promises";
+import { randomBytes } from "node:crypto";
+import { link, mkdir, open, unlink } from "node:fs/promises";
 import path from "node:path";
 
 type AppFile = { passwordHash: string };
@@ -20,18 +21,28 @@ export async function createAppPassword(
   const passwordHash = await Bun.password.hash(password, {
     algorithm: "argon2id",
   });
+  const dest = appPath(dataDir);
+  const temp = path.join(
+    dataDir,
+    `.app.json.${process.pid}.${randomBytes(8).toString("hex")}.tmp`,
+  );
   try {
-    const file = await open(appPath(dataDir), "wx", 0o600);
+    const file = await open(temp, "wx", 0o600);
     try {
       await file.writeFile(JSON.stringify({ passwordHash } satisfies AppFile));
     } finally {
       await file.close();
     }
-  } catch (err) {
-    if ((err as NodeJS.ErrnoException).code === "EEXIST") {
-      throw new Error("Already set up");
+    try {
+      await link(temp, dest);
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === "EEXIST") {
+        throw new Error("Already set up");
+      }
+      throw err;
     }
-    throw err;
+  } finally {
+    await unlink(temp).catch(() => {});
   }
 }
 
