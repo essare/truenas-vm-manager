@@ -1,0 +1,28 @@
+# Dependencies & build
+node_modules/
+web/dist/
+server/dist/
+*.tsbuildinfo
+
+# Runtime secrets & local state
+data/
+.env
+.env.*
+!.env.example
+
+# OS / editor
+.DS_Store
+*.log
+
+# TrueNAS API HTML dump (reference only; keep local, do not version)
+_sources/
+_static/
+*.html
+!web/index.html
+.buildinfo
+objects.inv
+searchindex.js
+genindex.html
+py-modindex.html
+truenas-docs
+*.zip
