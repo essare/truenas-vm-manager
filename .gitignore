@@ -26,3 +26,7 @@ genindex.html
 py-modindex.html
 truenas-docs
 *.zip
+
+# Git worktrees
+.worktrees/
+.superpowers/
