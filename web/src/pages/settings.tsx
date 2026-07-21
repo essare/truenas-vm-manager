@@ -1,6 +1,7 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Link, useNavigate } from "react-router-dom";
+import { XIcon } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -87,12 +88,16 @@ export function SettingsPage() {
               Manage your TrueNAS connection and application access.
             </p>
           </div>
-          <Link
-            className="text-sm font-medium underline-offset-4 hover:underline"
-            to="/"
+          <Button
+            aria-label="Close settings"
+            className="size-8 shrink-0"
+            onClick={() => navigate("/")}
+            size="icon"
+            type="button"
+            variant="ghost"
           >
-            Back to VMs
-          </Link>
+            <XIcon className="size-5" />
+          </Button>
         </div>
 
         <Card>

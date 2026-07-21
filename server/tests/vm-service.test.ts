@@ -1,7 +1,14 @@
 import { describe, expect, test } from "bun:test";
-import { listVms, mapTrueNasError, type VmCallClient } from "../src/truenas/vm-service";
+import {
+  listVms,
+  mapTrueNasError,
+  type VmCallClient,
+} from "../src/truenas/vm-service";
+import { inferGuestOs } from "../src/truenas/guest-os";
 
-function mockClient(handlers: Record<string, (params: unknown[]) => unknown>): VmCallClient {
+function mockClient(
+  handlers: Record<string, (params: unknown[]) => unknown>,
+): VmCallClient {
   return {
     call: async <T>(method: string, params: unknown[] = []) => {
       const h = handlers[method];
@@ -10,6 +17,34 @@ function mockClient(handlers: Record<string, (params: unknown[]) => unknown>): V
     },
   };
 }
+
+describe("inferGuestOs", () => {
+  test("uses hyperv enlightenments as windows signal from the API", () => {
+    expect(
+      inferGuestOs({ name: "box", hyperv_enlightenments: true }),
+    ).toBe("windows");
+  });
+
+  test("scans name and description for specific distros", () => {
+    expect(inferGuestOs({ name: "prod-ubuntu-01" })).toBe("ubuntu");
+    expect(inferGuestOs({ name: "db", description: "Debian 12" })).toBe(
+      "debian",
+    );
+    expect(inferGuestOs({ name: "win11-lab" })).toBe("windows");
+    expect(inferGuestOs({ name: "nas" })).toBe("unknown");
+  });
+
+  test("treats underscores as separators so linux_ubuntu names match", () => {
+    expect(inferGuestOs({ name: "linux_ubuntu_24_04_3_desktop" })).toBe(
+      "ubuntu",
+    );
+    expect(inferGuestOs({ name: "linux_kali_2025_4_amd64" })).toBe("kali");
+    expect(inferGuestOs({ name: "windows_11_pro_en" })).toBe("windows");
+    expect(inferGuestOs({ name: "linux_ubuntu_server_openclaw" })).toBe(
+      "ubuntu",
+    );
+  });
+});
 
 describe("listVms", () => {
   test("maps query + status", async () => {
@@ -34,7 +69,7 @@ describe("listVms", () => {
         vcpus: 4,
         memoryBytes: 8 * 1024 * 1024 * 1024,
         autostart: true,
-        guestOs: "linux",
+        guestOs: "ubuntu",
       },
     ]);
   });
@@ -51,7 +86,11 @@ describe("listVms", () => {
           hyperv_enlightenments: true,
         },
       ],
-      "vm.status": () => ({ state: "STOPPED", pid: null, domain_state: "shut off" }),
+      "vm.status": () => ({
+        state: "STOPPED",
+        pid: null,
+        domain_state: "shut off",
+      }),
     });
     expect(await listVms(client)).toEqual([
       {

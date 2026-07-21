@@ -1,0 +1,20 @@
+# TrueNAS VM Manager — edit SESSION_SECRET, then `docker compose up -d`.
+
+services:
+  truenas-vm-manager:
+    image: docker.io/essayoub/truenas-vm-manager:latest
+    container_name: truenas-vm-manager
+    restart: unless-stopped
+    ports:
+      - "8787:8787"
+    environment:
+      HOST: "0.0.0.0"
+      PORT: "8787"
+      DATA_DIR: "/data"
+      # Rotate in production (min 16 chars; prefer a long random string)
+      SESSION_SECRET: "change-me-to-a-long-random-string"
+    volumes:
+      - truenas-vm-manager-data:/data
+
+volumes:
+  truenas-vm-manager-data:

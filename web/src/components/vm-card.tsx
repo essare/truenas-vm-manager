@@ -58,17 +58,17 @@ export function VmCardView({
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-3">
-            <GuestOsIcon guestOs={vm.guestOs} />
+        <div className="flex items-start gap-3">
+          <GuestOsIcon guestOs={vm.guestOs} />
+          <div className="min-w-0 space-y-2">
             <CardTitle className="truncate">{vm.name}</CardTitle>
+            <Badge
+              className={cn(stateBadgeClass(vm.state))}
+              variant={vm.state === "RUNNING" ? "default" : "secondary"}
+            >
+              {stateLabel}
+            </Badge>
           </div>
-          <Badge
-            className={cn(stateBadgeClass(vm.state))}
-            variant={vm.state === "RUNNING" ? "default" : "secondary"}
-          >
-            {stateLabel}
-          </Badge>
         </div>
       </CardHeader>
       <CardContent>

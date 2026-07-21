@@ -10,7 +10,7 @@ const base = {
   vcpus: 4,
   memoryBytes: 4 * 1024 ** 3,
   autostart: true,
-  guestOs: "linux" as const,
+  guestOs: "ubuntu" as const,
 };
 
 afterEach(cleanup);
