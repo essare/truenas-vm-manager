@@ -27,6 +27,9 @@ py-modindex.html
 truenas-docs
 *.zip
 
+# Local favicon source drop (assets live in web/public)
+favicons/
+
 # Git worktrees
 .worktrees/
 .superpowers/
